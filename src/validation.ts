@@ -32,7 +32,28 @@ const langCode = z
   .string()
   .regex(/^[a-z]{3}$/, 'must be a 3-letter ISO 639-3 language code such as eng, spa, deu');
 
-const uriList = z.array(z.string().min(1)).max(20);
+/**
+ * List parameter that accepts either a single value or an array of values and
+ * always yields an array. LLM clients frequently send `"lang": "spa"` instead
+ * of `"lang": ["spa"]`; rejecting that only wastes a round trip.
+ *
+ * @param item - Schema for one element (e.g. a language code or an enum).
+ * @param limits - Optional element-count bounds, applied to the array form
+ *   (a single value always counts as one element).
+ * @returns A schema whose output type is `T[]`.
+ */
+export function stringOrArray<T extends string>(
+  item: z.ZodType<T>,
+  limits: { min?: number; max?: number } = {}
+) {
+  let list = z.array(item);
+  if (limits.min !== undefined) list = list.min(limits.min);
+  if (limits.max !== undefined) list = list.max(limits.max);
+  return z.union([item, list]).transform((v): T[] => (Array.isArray(v) ? v : [v]));
+}
+
+const dataTypeEnum = z.enum(['news', 'pr', 'blog']);
+const uriList = stringOrArray(z.string().min(1), { max: 20 });
 
 /** Fields shared by article and event search. */
 const commonSearchFields = {
@@ -42,7 +63,7 @@ const commonSearchFields = {
   category_uris: uriList.optional(),
   source_uris: uriList.optional(),
   location_uris: uriList.optional(),
-  lang: z.array(langCode).max(10).optional(),
+  lang: stringOrArray(langCode, { max: 10 }).optional(),
   date_start: isoDate.optional(),
   date_end: isoDate.optional(),
   /**
@@ -181,10 +202,7 @@ export const searchArticlesSchema = z
     keyword_search_mode: z.enum(['simple', 'exact', 'phrase']).optional(),
     ignore_keyword: z.string().min(1).optional(),
     ignore_source_uris: uriList.optional(),
-    data_types: z
-      .array(z.enum(['news', 'pr', 'blog']))
-      .min(1)
-      .optional(),
+    data_types: stringOrArray(dataTypeEnum, { min: 1 }).optional(),
     sort_by: articleSortEnum.optional().default('date'),
     sort_asc: z.boolean().optional().default(false),
     /** Articles per page. Defaults to 10, capped at 100 (API limit). */
@@ -234,10 +252,7 @@ const suggestBase = {
 export const suggestConceptsSchema = z.object({
   ...suggestBase,
   /** Restrict to concept kinds. */
-  types: z
-    .array(z.enum(['person', 'loc', 'org', 'wiki']))
-    .min(1)
-    .optional(),
+  types: stringOrArray(z.enum(['person', 'loc', 'org', 'wiki']), { min: 1 }).optional(),
   /** Language of the prefix (ISO 639-3). */
   lang: langCode.optional().default('eng'),
 });
@@ -246,10 +261,7 @@ export const suggestCategoriesSchema = z.object(suggestBase);
 
 export const suggestSourcesSchema = z.object({
   ...suggestBase,
-  data_types: z
-    .array(z.enum(['news', 'pr', 'blog']))
-    .min(1)
-    .optional(),
+  data_types: stringOrArray(dataTypeEnum, { min: 1 }).optional(),
 });
 
 export const suggestLocationsSchema = z.object({
@@ -260,10 +272,7 @@ export const suggestLocationsSchema = z.object({
 export const getTrendingConceptsSchema = z.object({
   source: z.enum(['news', 'social', 'pr', 'blog']).optional().default('news'),
   count: z.number().int().min(1).max(50).optional().default(10),
-  concept_types: z
-    .array(z.enum(['person', 'org', 'loc', 'wiki']))
-    .min(1)
-    .optional(),
+  concept_types: stringOrArray(z.enum(['person', 'org', 'loc', 'wiki']), { min: 1 }).optional(),
 });
 
 export const getUsageSchema = z.object({});

@@ -1,6 +1,7 @@
 import { NewsApiClient } from '../newsapi-client.js';
 import { normalizeTrendingConcepts } from '../domain/normalize.js';
 import { getTrendingConceptsSchema, withValidation } from '../validation.js';
+import { listProperty } from './search-common.js';
 
 /**
  * Trending is computed server-side by comparing how much a concept appears in
@@ -24,11 +25,10 @@ export function getTrendTools(client: NewsApiClient) {
             description: 'Data source to compute trends from (default news).',
           },
           count: { type: 'integer', description: 'How many trends, 1-50 (default 10).' },
-          concept_types: {
-            type: 'array',
-            items: { type: 'string', enum: ['person', 'org', 'loc', 'wiki'] },
-            description: 'Concept kinds to include (default: person, org, loc).',
-          },
+          concept_types: listProperty('Concept kinds to include (default: person, org, loc).', {
+            type: 'string',
+            enum: ['person', 'org', 'loc', 'wiki'],
+          }),
         },
         required: [],
       },

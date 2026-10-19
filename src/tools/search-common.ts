@@ -44,39 +44,52 @@ export function buildCommonQuery(args: CommonSearchArgs): RequestBody {
   };
 }
 
+/**
+ * JSON-schema fragment for a list-of-strings parameter that the server also
+ * accepts as a single string (see `stringOrArray` in validation.ts). Expressed
+ * as `anyOf` so schema-validating clients do not reject the scalar form.
+ *
+ * @param description - Human-readable parameter description.
+ * @param itemSchema - JSON schema of one element (defaults to a plain string).
+ */
+export function listProperty(
+  description: string,
+  itemSchema: Record<string, unknown> = { type: 'string' }
+) {
+  return {
+    anyOf: [itemSchema, { type: 'array', items: itemSchema }],
+    description: `${description} Accepts a single string or an array of strings.`,
+  };
+}
+
 /** Shared JSON-schema fragment for the filters common to article and event search. */
 export const commonSearchProperties = {
   keyword: {
     type: 'string',
-    description: 'Free-text keyword or phrase to search for.',
-  },
-  concept_uris: {
-    type: 'array',
-    items: { type: 'string' },
     description:
-      'Concept URIs (entities such as people, companies, places) — obtain them with ' +
-      'suggest_concepts. Multiple values are OR-ed. Far more precise than keyword.',
+      'Free-text keyword or phrase, for topics and general terms (e.g. "inflation", "wildfire"). ' +
+      'Do NOT use it for companies, people, places or organisations: common words double as ' +
+      'names (e.g. "Telefónica" also matches the ordinary Spanish adjective "telefónica") and ' +
+      'produce irrelevant results. For those entities call suggest_concepts first and pass the ' +
+      'returned URI in concept_uris.',
   },
-  category_uris: {
-    type: 'array',
-    items: { type: 'string' },
-    description: 'Category URIs, e.g. "news/Business" (use suggest_categories). OR-ed.',
-  },
-  source_uris: {
-    type: 'array',
-    items: { type: 'string' },
-    description: 'News source URIs, e.g. "bbc.co.uk" (use suggest_sources). OR-ed.',
-  },
-  location_uris: {
-    type: 'array',
-    items: { type: 'string' },
-    description: 'Location URIs where the news happened (use suggest_locations). OR-ed.',
-  },
-  lang: {
-    type: 'array',
-    items: { type: 'string' },
-    description: '3-letter ISO 639-3 language codes, e.g. ["eng", "spa"]. OR-ed.',
-  },
+  concept_uris: listProperty(
+    'Concept URIs for entities: companies, people, places, organisations. PREFERRED over ' +
+      'keyword for any named entity: first call suggest_concepts (free) to resolve the name, ' +
+      'then pass the returned `uri` here. Multiple values are OR-ed and far more precise than ' +
+      'keyword, which avoids homonym noise.'
+  ),
+  category_uris: listProperty(
+    'Category URIs, e.g. "news/Business" (use suggest_categories). OR-ed.'
+  ),
+  source_uris: listProperty('News source URIs, e.g. "bbc.co.uk" (use suggest_sources). OR-ed.'),
+  location_uris: listProperty(
+    'Location URIs where the news happened (use suggest_locations). OR-ed.'
+  ),
+  lang: listProperty('3-letter ISO 639-3 language codes, e.g. "spa" or ["eng", "spa"]. OR-ed.', {
+    type: 'string',
+    pattern: '^[a-z]{3}$',
+  }),
   date_start: {
     type: 'string',
     description:

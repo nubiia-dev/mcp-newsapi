@@ -70,6 +70,14 @@ of those are billed (see above). The client treats them as errors and does not r
   (`bbc.com`).
 - Concept labels are `{ eng: "..." }`; locations use `wikiUri` instead of `uri`.
 
+## Input conventions
+
+- List parameters (`lang`, `*_uris`, `data_types`, `types`, `concept_types`) accept a single
+  string or an array; the server normalizes both to an array before building the request.
+  The published JSON schema declares them as `anyOf: [string, array of string]`.
+- `keyword` matches plain text, so homonyms add noise (e.g. "Telefónica" vs. the adjective
+  "telefónica"). Entities should be resolved with `suggest_concepts` and sent as `concept_uris`.
+
 ## Open items
 
 - Rate limits other than the 5-simultaneous-requests rule are unknown; the local limits
