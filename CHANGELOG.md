@@ -1,3 +1,11 @@
+# 1.0.0 (2026-10-19)
+
+
+### Features
+
+* add session token budget and archive/date guards ([a12fbf5](https://github.com/nubiia-dev/mcp-newsapi/commit/a12fbf5f68a6ba51276c9c6f395ad827eba34122))
+* implement mcp-newsapi v1 ([cdc3bbd](https://github.com/nubiia-dev/mcp-newsapi/commit/cdc3bbd25ca9f0140e7668f7c8fa4893af20daed))
+
 # [1.0.0] (2026-10-19)
 
 ### Features
