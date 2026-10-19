@@ -15,7 +15,9 @@ export function getAccountTools(client: NewsApiClient) {
         'for the current period. Call it before a batch of searches (measured costs: ' +
         'search_articles and get_article 1 token, search_events and get_event info 5, ' +
         'get_trending_concepts 10). Free: does not consume tokens itself. ' +
-        'Suggest tools are free too.',
+        'Suggest tools are free too. Also reports this server\u2019s session budget ' +
+        '(NEWSAPI_AI_MAX_TOKENS_PER_SESSION, default 200): calls that would exceed it fail ' +
+        'locally without reaching the API.',
       inputSchema: {
         type: 'object' as const,
         properties: {},
@@ -24,7 +26,20 @@ export function getAccountTools(client: NewsApiClient) {
       readOnlyHint: true,
       handler: withValidation(getUsageSchema, async () => {
         const raw = await client.post('/api/v1/usage');
-        return normalizeUsage(raw);
+        const session = client.sessionBudget;
+        return {
+          ...normalizeUsage(raw),
+          // Local per-process guard (NEWSAPI_AI_MAX_TOKENS_PER_SESSION), separate from the account balance.
+          ...(session
+            ? {
+                session: {
+                  maxTokens: session.max,
+                  spentTokens: session.spentTokens,
+                  remainingTokens: session.remainingTokens,
+                },
+              }
+            : {}),
+        };
       }),
     },
   };

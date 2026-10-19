@@ -1,4 +1,5 @@
 import type { RequestBody } from '../newsapi-client.js';
+import { RECENT_WINDOW_DAYS } from '../validation.js';
 
 /** Filter inputs shared by search_articles and search_events (snake_case, already validated). */
 export interface CommonSearchArgs {
@@ -18,7 +19,6 @@ export interface CommonSearchArgs {
  * cheapest tier (Event Registry bills extra tokens per year of archive
  * touched). It is applied unless the caller explicitly opts into the archive.
  */
-const RECENT_WINDOW_DAYS = 31;
 
 /** Returns `value` unchanged when it is a non-empty array, else `undefined` (so the key is dropped). */
 export function nonEmpty<T>(value: T[] | undefined): T[] | undefined {
@@ -77,13 +77,24 @@ export const commonSearchProperties = {
     items: { type: 'string' },
     description: '3-letter ISO 639-3 language codes, e.g. ["eng", "spa"]. OR-ed.',
   },
-  date_start: { type: 'string', description: 'Earliest date, YYYY-MM-DD (inclusive).' },
-  date_end: { type: 'string', description: 'Latest date, YYYY-MM-DD (inclusive).' },
+  date_start: {
+    type: 'string',
+    description:
+      'Earliest date, YYYY-MM-DD (inclusive). Must be within the last 31 days unless ' +
+      'allow_archive=true, which makes date_start mandatory.',
+  },
+  date_end: {
+    type: 'string',
+    description:
+      'Latest date, YYYY-MM-DD (inclusive); must be >= date_start. With allow_archive the ' +
+      'date_start → date_end (default today) span may be at most 1 year.',
+  },
   allow_archive: {
     type: 'boolean',
     description:
       'Default false: search only the last 31 days (cheapest). Set true to reach the historical ' +
-      'archive, which costs extra tokens per year queried.',
+      'archive, which costs extra tokens per year queried; requires date_start and a range of ' +
+      'at most 1 year.',
   },
   page: { type: 'integer', description: 'Result page, starting at 1 (default 1).' },
 };

@@ -1,10 +1,13 @@
 #!/usr/bin/env node
 
+import { createRequire } from 'node:module';
+
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 
 import { RateLimiter } from './utils/rate-limiter.js';
+import { BUDGET_ENV_VAR, TokenBudget, parseBudgetEnv } from './utils/token-budget.js';
 import { NewsApiClient } from './newsapi-client.js';
 import { getArticleTools } from './tools/articles.js';
 import { getEventTools } from './tools/events.js';
@@ -12,11 +15,24 @@ import { getSuggestTools } from './tools/suggest.js';
 import { getTrendTools } from './tools/trends.js';
 import { getAccountTools } from './tools/account.js';
 
+// The version is read from package.json at runtime: hard-coded here it drifts as soon as
+// semantic-release publishes, and MCP clients would see a number that does not match the
+// installed package.
+const require = createRequire(import.meta.url);
+const { version } = require('../package.json') as { version: string };
+
 const apiKey = process.env.NEWSAPI_AI_API_KEY ?? '';
+
+const budgetConfig = parseBudgetEnv(process.env[BUDGET_ENV_VAR]);
+if (budgetConfig.warning) {
+  console.error(`Warning: ${budgetConfig.warning}`);
+}
+/** Token-weighted spending cap for this server process; see utils/token-budget.ts. */
+const budget = new TokenBudget(budgetConfig.value);
 
 let client: NewsApiClient;
 try {
-  client = new NewsApiClient(apiKey);
+  client = new NewsApiClient(apiKey, { budget });
 } catch (error) {
   console.error(error instanceof Error ? error.message : String(error));
   process.exit(1);
@@ -57,7 +73,7 @@ const allTools = {
 const server = new Server(
   {
     name: 'mcp-newsapi',
-    version: '1.0.0',
+    version,
   },
   {
     capabilities: {
@@ -72,7 +88,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       name,
       description: tool.description,
       inputSchema: tool.inputSchema,
-      ...('readOnlyHint' in tool ? { readOnlyHint: tool.readOnlyHint } : {}),
+      annotations: { readOnlyHint: 'readOnlyHint' in tool ? tool.readOnlyHint : false },
     })),
   };
 });
@@ -130,7 +146,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error('NewsAPI.ai MCP Server running on stdio');
+  console.error(
+    `NewsAPI.ai MCP Server ${version} running on stdio (session budget: ${budget.max} tokens)`
+  );
 }
 
 main().catch((error) => {

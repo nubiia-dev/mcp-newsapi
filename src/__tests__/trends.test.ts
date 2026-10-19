@@ -46,6 +46,16 @@ describe('Trend Tools', () => {
       expect(result.items).toHaveLength(1);
     });
 
+    it("accepts the 'blog' source and rejects the invalid 'blogs'", async () => {
+      await tools.get_trending_concepts.handler({ source: 'blog' });
+      const [, body] = (client.post as any).mock.calls[0];
+      expect(body.source).toBe('blog');
+      expect(body.dataType).toBe('blog');
+      await expect(tools.get_trending_concepts.handler({ source: 'blogs' })).rejects.toThrow(
+        /Validation error/
+      );
+    });
+
     it('rejects count above 50', async () => {
       await expect(tools.get_trending_concepts.handler({ count: 51 })).rejects.toThrow(
         /Validation error/

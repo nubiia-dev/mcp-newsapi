@@ -10,8 +10,22 @@ import { z } from 'zod';
  * the calling agent's context window.
  */
 
+/**
+ * Parses a `YYYY-MM-DD` string into a UTC midnight timestamp, or `undefined`
+ * when it is not a real calendar date (the regex alone would accept 2026-13-45).
+ */
+export function parseIsoDate(value: string): number | undefined {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
+  const ms = Date.parse(`${value}T00:00:00Z`);
+  if (Number.isNaN(ms)) return undefined;
+  // Date.parse rolls invalid days over in some engines (e.g. 2026-02-30); round-trip to catch that.
+  return new Date(ms).toISOString().slice(0, 10) === value ? ms : undefined;
+}
+
 /** `YYYY-MM-DD` calendar date, the format Event Registry expects for dateStart/dateEnd. */
-const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must be a date in YYYY-MM-DD format');
+const isoDate = z
+  .string()
+  .refine((v) => parseIsoDate(v) !== undefined, 'must be a real date in YYYY-MM-DD format');
 
 /** ISO 639-3 language code (e.g. `eng`, `spa`, `deu`), as used by Event Registry. */
 const langCode = z
@@ -40,6 +54,10 @@ const commonSearchFields = {
   page: z.number().int().min(1).optional().default(1),
 };
 
+/** Length of the cheap "recent" window, in days (see `forceMaxDataTimeWindow` in search-common.ts). */
+export const RECENT_WINDOW_DAYS = 31;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 const SEARCH_FILTER_KEYS = [
   'keyword',
   'concept_uris',
@@ -53,6 +71,100 @@ function hasSearchFilter(v: Record<string, unknown>): boolean {
     const value = v[k];
     return Array.isArray(value) ? value.length > 0 : value !== undefined;
   });
+}
+
+/** Adds one calendar year to a UTC timestamp. */
+function addOneYear(ms: number): number {
+  const d = new Date(ms);
+  d.setUTCFullYear(d.getUTCFullYear() + 1);
+  return d.getTime();
+}
+
+/**
+ * Cross-field rules for date/archive handling, shared by article and event
+ * search. They exist because the archive is billed per year touched:
+ *  - without allow_archive the API only sees the last 31 days, so an older
+ *    date range would silently return nothing — reject it with an explanation;
+ *  - with allow_archive a start date is mandatory and the span is capped at
+ *    one year, so a single call can never touch more than ~1 year of archive.
+ */
+function validateDates(
+  v: {
+    date_start?: string;
+    date_end?: string;
+    allow_archive: boolean;
+  },
+  ctx: z.RefinementCtx
+): void {
+  const start = v.date_start !== undefined ? parseIsoDate(v.date_start) : undefined;
+  const end = v.date_end !== undefined ? parseIsoDate(v.date_end) : undefined;
+  const now = Date.now();
+  const todayMs = now - (now % DAY_MS);
+  const recentLimit = todayMs - RECENT_WINDOW_DAYS * DAY_MS;
+
+  if (start !== undefined && end !== undefined && end < start) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['date_end'],
+      message: 'date_end must be on or after date_start',
+    });
+  }
+
+  if (!v.allow_archive) {
+    if (start !== undefined && start < recentLimit) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['date_start'],
+        message:
+          `date_start ${v.date_start} is older than ${RECENT_WINDOW_DAYS} days; searches only ` +
+          `cover the last ${RECENT_WINDOW_DAYS} days unless allow_archive=true (which costs ` +
+          `extra tokens per year of archive touched)`,
+      });
+    }
+    if (end !== undefined && end < recentLimit) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['date_end'],
+        message:
+          `date_end ${v.date_end} is older than ${RECENT_WINDOW_DAYS} days; searches only ` +
+          `cover the last ${RECENT_WINDOW_DAYS} days unless allow_archive=true (which costs ` +
+          `extra tokens per year of archive touched)`,
+      });
+    }
+    return;
+  }
+
+  if (start === undefined) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['date_start'],
+      message:
+        'allow_archive=true requires date_start, so the archive span (billed per year) is ' +
+        'bounded; the range may cover at most 1 year',
+    });
+    return;
+  }
+  const spanEnd = end ?? todayMs;
+  if (spanEnd > addOneYear(start)) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['date_end'],
+      message:
+        `archive range ${v.date_start} → ${v.date_end ?? 'today'} is longer than 1 year; ` +
+        `narrow it (split into several searches) to keep token cost bounded`,
+    });
+  }
+}
+
+/** Combined refinement for article/event search inputs. */
+function refineSearch(
+  v: Record<string, unknown> & { date_start?: string; date_end?: string; allow_archive: boolean },
+  ctx: z.RefinementCtx
+): void {
+  if (!hasSearchFilter(v)) {
+    ctx.addIssue({ code: 'custom', message: NEEDS_FILTER_MESSAGE });
+  }
+  validateDates(v, ctx);
 }
 
 const NEEDS_FILTER_MESSAGE =
@@ -83,7 +195,7 @@ export const searchArticlesSchema = z
     min_sentiment: z.number().min(-1).max(1).optional(),
     max_sentiment: z.number().min(-1).max(1).optional(),
   })
-  .refine(hasSearchFilter, { message: NEEDS_FILTER_MESSAGE });
+  .superRefine(refineSearch);
 
 export const getArticleSchema = z.object({
   article_uri: z.string().min(1),
@@ -101,7 +213,7 @@ export const searchEventsSchema = z
     count: z.number().int().min(1).max(50).optional().default(10),
     summary_len: z.number().int().min(0).max(2000).optional().default(300),
   })
-  .refine(hasSearchFilter, { message: NEEDS_FILTER_MESSAGE });
+  .superRefine(refineSearch);
 
 export const getEventSchema = z.object({
   event_uri: z.string().min(1),
@@ -146,7 +258,7 @@ export const suggestLocationsSchema = z.object({
 });
 
 export const getTrendingConceptsSchema = z.object({
-  source: z.enum(['news', 'social', 'pr', 'blogs']).optional().default('news'),
+  source: z.enum(['news', 'social', 'pr', 'blog']).optional().default('news'),
   count: z.number().int().min(1).max(50).optional().default(10),
   concept_types: z
     .array(z.enum(['person', 'org', 'loc', 'wiki']))
