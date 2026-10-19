@@ -1,7 +1,12 @@
 import { NewsApiClient } from '../newsapi-client.js';
 import { normalizeArticle, normalizeArticlePage } from '../domain/normalize.js';
 import { getArticleSchema, searchArticlesSchema, withValidation } from '../validation.js';
-import { buildCommonQuery, commonSearchProperties, nonEmpty } from './search-common.js';
+import {
+  buildCommonQuery,
+  commonSearchProperties,
+  listProperty,
+  nonEmpty,
+} from './search-common.js';
 
 /**
  * Article tools. Both are read-only; they consume NewsAPI.ai search tokens
@@ -15,8 +20,10 @@ export function getArticleTools(client: NewsApiClient) {
         'to the last 31 days (the default); querying the historical archive (allow_archive=true) ' +
         'costs extra tokens per year touched. At least one of keyword / concept_uris / ' +
         'category_uris / source_uris / location_uris is required. Prefer concept_uris (from ' +
-        'suggest_concepts, which is free) over free-text keyword for entities — it avoids ' +
-        'homonym noise. Results are compact: title, truncated body (body_len, default 300 chars), ' +
+        'suggest_concepts, which is free) over free-text keyword for any company, person, place ' +
+        'or organisation: keyword is for free terms/topics and is noisy with common words ' +
+        '(e.g. "Telefónica" also matches the Spanish adjective "telefónica"), so resolve ' +
+        'entities with suggest_concepts first and pass concept_uris. Results are compact: title, truncated body (body_len, default 300 chars), ' +
         'url, source, date, sentiment. Defaults to 10 results, newest first, duplicates skipped. ' +
         'Paginate with `page`; check `total` and `pages` in the response.',
       inputSchema: {
@@ -34,16 +41,11 @@ export function getArticleTools(client: NewsApiClient) {
             description: 'How to match the keyword: simple (any word), exact, or phrase.',
           },
           ignore_keyword: { type: 'string', description: 'Exclude articles mentioning this.' },
-          ignore_source_uris: {
-            type: 'array',
-            items: { type: 'string' },
-            description: 'Exclude these news sources.',
-          },
-          data_types: {
-            type: 'array',
-            items: { type: 'string', enum: ['news', 'pr', 'blog'] },
-            description: 'Content types to include (default: all).',
-          },
+          ignore_source_uris: listProperty('Exclude these news sources.'),
+          data_types: listProperty('Content types to include (default: all).', {
+            type: 'string',
+            enum: ['news', 'pr', 'blog'],
+          }),
           sort_by: {
             type: 'string',
             enum: ['date', 'rel', 'sourceImportance', 'cosSim'],

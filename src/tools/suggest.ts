@@ -7,6 +7,7 @@ import {
   suggestSourcesSchema,
   withValidation,
 } from '../validation.js';
+import { listProperty } from './search-common.js';
 
 const prefixProp = {
   type: 'string',
@@ -36,11 +37,10 @@ export function getSuggestTools(client: NewsApiClient) {
         type: 'object' as const,
         properties: {
           prefix: prefixProp,
-          types: {
-            type: 'array',
-            items: { type: 'string', enum: ['person', 'loc', 'org', 'wiki'] },
-            description: 'Restrict to these concept kinds (default: all).',
-          },
+          types: listProperty('Restrict to these concept kinds (default: all).', {
+            type: 'string',
+            enum: ['person', 'loc', 'org', 'wiki'],
+          }),
           lang: { type: 'string', description: 'Language of the prefix, ISO 639-3 (default eng).' },
           count: countProp,
           page: pageProp,
@@ -90,11 +90,10 @@ export function getSuggestTools(client: NewsApiClient) {
         type: 'object' as const,
         properties: {
           prefix: prefixProp,
-          data_types: {
-            type: 'array',
-            items: { type: 'string', enum: ['news', 'pr', 'blog'] },
-            description: 'Restrict to sources of these content types (default: all).',
-          },
+          data_types: listProperty('Restrict to sources of these content types (default: all).', {
+            type: 'string',
+            enum: ['news', 'pr', 'blog'],
+          }),
           count: countProp,
           page: pageProp,
         },

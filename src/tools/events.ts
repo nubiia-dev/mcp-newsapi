@@ -19,7 +19,10 @@ export function getEventTools(client: NewsApiClient) {
         'per call within the last 31 days (default); allow_archive=true costs extra per year ' +
         'touched. At least one of keyword / concept_uris / category_uris / source_uris / ' +
         'location_uris is required. Defaults to 10 events, newest first; use sort_by="size" for ' +
-        'the biggest stories. Use get_event for details on one.',
+        'the biggest stories. Use get_event for details on one. For companies, people, places or ' +
+        'organisations, resolve them with suggest_concepts first and pass concept_uris; keyword ' +
+        'is for free terms/topics and is noisy with common words (e.g. "Telefónica" also ' +
+        'matches the Spanish adjective "telefónica").',
       inputSchema: {
         type: 'object' as const,
         properties: {
