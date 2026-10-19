@@ -130,7 +130,7 @@ Add to your Claude Desktop config file:
   "mcpServers": {
     "newsapi": {
       "command": "npx",
-      "args": ["-y", "@nubiia/mcp-newsapi"],
+      "args": ["-y", "@nubiia/mcp-newsapi@latest"],
       "env": {
         "NEWSAPI_AI_API_KEY": "your_newsapi_ai_key",
         "NEWSAPI_AI_MAX_TOKENS_PER_SESSION": "200"
@@ -159,10 +159,22 @@ Or if installed from source:
 ### Claude Code Configuration
 
 ```bash
-claude mcp add newsapi --env NEWSAPI_AI_API_KEY=your_newsapi_ai_key -- npx -y @nubiia/mcp-newsapi
+claude mcp add newsapi --env NEWSAPI_AI_API_KEY=your_newsapi_ai_key -- npx -y @nubiia/mcp-newsapi@latest
 ```
 
+### Troubleshooting
+
+- **`sh: mcp-newsapi: command not found` when launching from inside this repo.** If you
+  start Claude Code (or another MCP client) from the cloned repository directory,
+  `npx @nubiia/mcp-newsapi` resolves the local `package.json` instead of the published
+  package, and the `mcp-newsapi` binary is not on the `PATH`. Pin the registry version
+  with `@latest` (as in the examples above), or launch the client from another directory.
+
 ## Tools
+
+List parameters (`lang`, `concept_uris`, `category_uris`, `source_uris`, `location_uris`,
+`ignore_source_uris`, `data_types`, `types`, `concept_types`) accept either a single string
+or an array of strings: `"lang": "spa"` and `"lang": ["spa"]` are equivalent.
 
 The recommended flow: **`suggest_*` (free) → `search_*` → `get_*`**.
 
@@ -174,6 +186,11 @@ Resolve a name ("Telefónica", "Pedro Sánchez") to a concept URI. Pass the `uri
 ```json
 { "prefix": "Telefónica", "types": ["org"], "count": 3 }
 ```
+
+> **Searching for a company, person, place or organisation?** Resolve it with
+> `suggest_concepts` first and pass the returned `uri` as `concept_uris`. `keyword` is for
+> free terms and topics and is noisy with common words: for example `keyword: "Telefónica"`
+> in Spanish also matches the ordinary adjective "telefónica".
 
 ### `suggest_categories`, `suggest_sources`, `suggest_locations` · read-only · free
 
