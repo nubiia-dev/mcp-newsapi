@@ -20,7 +20,8 @@
       "command": "node",
       "args": ["${__dirname}/dist/index.js"],
       "env": {
-        "NEWSAPI_AI_API_KEY": "${user_config.newsapi_ai_api_key}"
+        "NEWSAPI_AI_API_KEY": "${user_config.newsapi_ai_api_key}",
+        "NEWSAPI_AI_MAX_TOKENS_PER_SESSION": "${user_config.newsapi_ai_max_tokens_per_session}"
       }
     }
   },
@@ -62,6 +63,14 @@
       "description": "Your NewsAPI.ai API key from the newsapi.ai Dashboard.",
       "required": true,
       "sensitive": true
+    },
+    "newsapi_ai_max_tokens_per_session": {
+      "type": "number",
+      "title": "Session token budget",
+      "description": "Maximum NewsAPI.ai tokens this server may spend per session (until it is restarted). Searches cost 1-10 tokens each. Defaults to 200.",
+      "required": false,
+      "sensitive": false,
+      "default": 200
     }
   },
 

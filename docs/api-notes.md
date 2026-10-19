@@ -44,6 +44,19 @@ The free plan observed had 2000 tokens. Queries that reach into the archive (old
 days) are billed extra per year touched; this server avoids that by sending
 `forceMaxDataTimeWindow: 31` unless `allow_archive` is true.
 
+## Trends data types
+
+`getTrendingConcepts` accepts `dataType` = `news`, `blog` or `pr` (plus `source: social`).
+`blogs` (as written in the Python SDK docs) is rejected: *"unknown data type: blogs. Valid
+values for the parameter are news, blog or pr."* — that rejection is free. `blog` is
+accepted but, on the observed free-plan account, answered *"Trends with the given
+parameters were not computed."* and **was still billed 10 tokens**. `pr` was not called.
+
+## Error responses
+
+Besides HTTP 4xx/5xx, the API reports failures as HTTP 200 with `{"error": "..."}`; some
+of those are billed (see above). The client treats them as errors and does not refund.
+
 ## Response shapes (relevant parts)
 
 - Articles: `{ articles: { results[], totalResults, page, pages } }`. Each result has

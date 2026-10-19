@@ -23,8 +23,13 @@ server is built to be frugal:
 - Result counts default to **10** (articles/events) and article bodies to **300
   characters**, so a call is cheap in tokens *and* in your assistant's context window.
 - Searches are limited to the **last 31 days** unless you pass `allow_archive: true`
-  (historical data costs extra tokens per year touched).
+  (historical data costs extra tokens per year touched). `allow_archive` **requires
+  `date_start`** and the `date_start` → `date_end` (default: today) range may span **at
+  most 1 year**. A `date_start`/`date_end` older than 31 days **without** `allow_archive`
+  is rejected with an explanation instead of silently returning nothing.
 - A search with **no filter at all is rejected** locally, before it can spend anything.
+- A **session token budget** (default **200 tokens**, see below) stops runaway loops
+  before they reach the API.
 - The `suggest_*` tools and `get_usage` are **free** — use them to resolve entities to
   URIs *before* searching.
 - `get_usage` shows the remaining budget.
@@ -91,10 +96,24 @@ npm run build
 | Variable | Required | Description |
 |---|---|---|
 | `NEWSAPI_AI_API_KEY` | Yes | Your NewsAPI.ai API key (Dashboard). Secret — never commit it. |
+| `NEWSAPI_AI_MAX_TOKENS_PER_SESSION` | No | Max NewsAPI.ai tokens this server may spend per session (until the server process restarts). Default **200**. |
 
 ```bash
 export NEWSAPI_AI_API_KEY=your_newsapi_ai_key
+export NEWSAPI_AI_MAX_TOKENS_PER_SESSION=200   # optional
 ```
+
+### Session token budget
+
+Every call is charged its measured token cost (see the table above) **before** it is
+sent. When a call would exceed the remaining budget, the tool returns an error stating the
+remaining and total budget and how to raise it — and **no request is sent to NewsAPI.ai**.
+Free tools (`suggest_*`, `get_usage`) are never blocked. `get_usage` also reports the
+session budget (`maxTokens`, `spentTokens`, `remainingTokens`) next to your account
+balance. Calls the API rejects outright (4xx) are refunded; calls that fail after being
+accepted (including HTTP 200 `{"error"}` bodies) stay charged, because the API bills them.
+An invalid value (e.g. `abc`, `-5`) falls back to 200 with a warning on stderr; `0`
+disables all paid calls.
 
 ### Claude Desktop Configuration
 
@@ -110,7 +129,8 @@ Add to your Claude Desktop config file:
       "command": "npx",
       "args": ["-y", "@nubiia/mcp-newsapi"],
       "env": {
-        "NEWSAPI_AI_API_KEY": "your_newsapi_ai_key"
+        "NEWSAPI_AI_API_KEY": "your_newsapi_ai_key",
+        "NEWSAPI_AI_MAX_TOKENS_PER_SESSION": "200"
       }
     }
   }
@@ -172,6 +192,9 @@ and `pages`.
 }
 ```
 
+Dates must be real `YYYY-MM-DD` dates, `date_end` must not precede `date_start`, and the
+archive rules above apply (`allow_archive` needs `date_start`, max 1 year).
+
 Other options: `keyword_loc`, `keyword_search_mode`, `ignore_keyword`,
 `ignore_source_uris`, `data_types` (`news`/`pr`/`blog`), `sort_by`
 (`date`/`rel`/`sourceImportance`/`cosSim`), `min_sentiment`/`max_sentiment`,
@@ -195,7 +218,7 @@ One event by `event_uri`, or — with `include_articles: true` — the articles 
 ### `get_trending_concepts` · read-only · 10 tokens
 
 People, organisations and places trending right now (last 2 days vs last 2 weeks) in
-`news`, `social`, `pr` or `blogs`. The priciest tool: call it sparingly.
+`news`, `social`, `pr` or `blog` (blog trends may be unavailable on some plans, and the failed call is still billed). The priciest tool: call it sparingly.
 
 ### `get_usage` · read-only · free
 
@@ -212,14 +235,17 @@ A local guard stops runaway agent loops before they drain the token budget:
 | `suggest_*`, `get_usage` | 120 req/min |
 | Everything else (default) | 60 req/min |
 
-The API itself allows at most 5 simultaneous requests; `429` responses are retried with
-backoff.
+The API itself allows at most 5 simultaneous requests. `429`/`502`/`503`/`504` responses
+and connection-refused/DNS errors are retried with backoff; ambiguous failures (timeouts,
+connection resets) are **not**, because a metered request may already have been billed.
+Each attempt times out after 30 seconds.
 
 ## Error messages
 
 A `401`/`403` response includes an explanation, not just "Unauthorized": the key may be
 wrong/revoked, or the account may be out of tokens (`get_usage` tells you which).
-The API key is sent in the request body, never in a URL, and is redacted from error text.
+The API key is sent in the request body, never in a URL, and is redacted from every error
+message (HTTP, network and JSON-parse errors alike).
 
 ## Development
 
