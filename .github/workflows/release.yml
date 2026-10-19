@@ -39,8 +39,28 @@ jobs:
         run: npm test
 
       - name: Release
+        id: release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: true
         run: npx semantic-release
+
+      # El tag lo crea semantic-release con GITHUB_TOKEN, y GitHub no dispara
+      # workflows con eventos generados por su propio token: publish-mcp.yml
+      # nunca arrancaría solo. Por eso la publicación al registro se encadena
+      # aquí, condicionada a que esta ejecución haya publicado algo.
+      - name: Download MCP Publisher
+        if: steps.release.outputs.released == 'true'
+        run: |
+          curl -L https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz -o mcp-publisher.tar.gz
+          tar -xzf mcp-publisher.tar.gz
+          chmod +x mcp-publisher
+
+      - name: Authenticate with MCP Registry (OIDC)
+        if: steps.release.outputs.released == 'true'
+        run: ./mcp-publisher login github-oidc
+
+      - name: Publish to MCP Registry
+        if: steps.release.outputs.released == 'true'
+        run: ./mcp-publisher publish
