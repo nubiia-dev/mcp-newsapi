@@ -1,0 +1,44 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+  "name": "io.github.nubiia-dev/mcp-newsapi",
+  "description": "NewsAPI.ai (Event Registry): 10 read-only MCP tools for news articles, events, autosuggest, trends",
+  "version": "1.0.0",
+  "homepage": "https://github.com/nubiia-dev/mcp-newsapi",
+  "license": "MIT",
+  "author": {
+    "name": "Nubiia",
+    "url": "https://nubiia.es"
+  },
+  "repository": {
+    "url": "https://github.com/nubiia-dev/mcp-newsapi",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@nubiia/mcp-newsapi",
+      "version": "1.0.0",
+      "runtimeHint": "npx",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "NEWSAPI_AI_API_KEY",
+          "description": "Your NewsAPI.ai API key (newsapi.ai → Dashboard).",
+          "format": "string",
+          "isRequired": true,
+          "isSecret": true
+        },
+        {
+          "name": "NEWSAPI_AI_MAX_TOKENS_PER_SESSION",
+          "description": "Max NewsAPI.ai tokens this server may spend per session (process lifetime). Defaults to 200.",
+          "format": "number",
+          "isRequired": false,
+          "isSecret": false,
+          "default": "200"
+        }
+      ]
+    }
+  ]
+}
