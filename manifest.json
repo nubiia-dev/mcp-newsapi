@@ -1,0 +1,84 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anthropics/mcpb/main/dist/mcpb-manifest.schema.json",
+  "manifest_version": "0.3",
+  "name": "mcp-newsapi",
+  "display_name": "NewsAPI.ai MCP Server",
+  "version": "1.0.0",
+  "description": "MCP Server for the NewsAPI.ai (Event Registry) API - search news articles and events, resolve entities, and see what is trending",
+  "long_description": "A Model Context Protocol (MCP) server that gives AI assistants like Claude access to the NewsAPI.ai (Event Registry) news intelligence API. Search articles and events (clusters of articles about the same happening) by keyword, entity, category, source, location, language and date; resolve names to entity URIs with free autosuggest tools; see what is trending; and check the account's remaining token budget.\n\n**Features:**\n- Article and event search with token-frugal defaults (10 results, 300-character bodies, last 31 days)\n- Free autosuggest for concepts, categories, sources and locations\n- Trending concepts across news, social, press releases and blogs\n- Token usage tool and per-tool cost documented in each tool description\n- Read-only: nothing is written to NewsAPI.ai or to disk\n\n**Requires a NewsAPI.ai account and API key.** The API is token-metered; a free plan with a limited budget is available.",
+
+  "author": {
+    "name": "Nubiia",
+    "email": "hola@nubiia.es",
+    "url": "https://nubiia.es"
+  },
+
+  "server": {
+    "type": "node",
+    "entry_point": "dist/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/dist/index.js"],
+      "env": {
+        "NEWSAPI_AI_API_KEY": "${user_config.newsapi_ai_api_key}",
+        "NEWSAPI_AI_MAX_TOKENS_PER_SESSION": "${user_config.newsapi_ai_max_tokens_per_session}"
+      }
+    }
+  },
+
+  "tools_generated": true,
+
+  "keywords": [
+    "newsapi",
+    "newsapi-ai",
+    "event-registry",
+    "news",
+    "media-monitoring",
+    "api",
+    "mcp",
+    "claude",
+    "articles",
+    "events",
+    "trends",
+    "business"
+  ],
+
+  "license": "MIT",
+
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nubiia-dev/mcp-newsapi.git"
+  },
+
+  "homepage": "https://github.com/nubiia-dev/mcp-newsapi",
+  "documentation": "https://github.com/nubiia-dev/mcp-newsapi#readme",
+  "support": "https://github.com/nubiia-dev/mcp-newsapi/issues",
+
+  "privacy_policies": ["https://nubiia.es/privacy"],
+
+  "user_config": {
+    "newsapi_ai_api_key": {
+      "type": "string",
+      "title": "NewsAPI.ai API Key",
+      "description": "Your NewsAPI.ai API key from the newsapi.ai Dashboard.",
+      "required": true,
+      "sensitive": true
+    },
+    "newsapi_ai_max_tokens_per_session": {
+      "type": "number",
+      "title": "Session token budget",
+      "description": "Maximum NewsAPI.ai tokens this server may spend per session (until it is restarted). Searches cost 1-10 tokens each. Defaults to 200.",
+      "required": false,
+      "sensitive": false,
+      "default": 200
+    }
+  },
+
+  "compatibility": {
+    "claude_desktop": ">=0.10.0",
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": {
+      "node": ">=22.14.0"
+    }
+  }
+}
