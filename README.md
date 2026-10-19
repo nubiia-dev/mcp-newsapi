@@ -105,6 +105,9 @@ export NEWSAPI_AI_MAX_TOKENS_PER_SESSION=200   # optional
 
 ### Session token budget
 
+The budget is **per server process**: each MCP client/server instance you start has its own
+counter, so two clients configured with 200 can together spend 400. It resets on restart.
+
 Every call is charged its measured token cost (see the table above) **before** it is
 sent. When a call would exceed the remaining budget, the tool returns an error stating the
 remaining and total budget and how to raise it — and **no request is sent to NewsAPI.ai**.
