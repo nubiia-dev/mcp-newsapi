@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/nubiia-dev/mcp-newsapi/compare/v1.0.0...v1.0.1) (2026-10-19)
+
+
+### Bug Fixes
+
+* accept a single string for list parameters and guide entity searches ([4d0e850](https://github.com/nubiia-dev/mcp-newsapi/commit/4d0e850aee2317e09688ed725cdfbcc8b77c32b9))
+
 # 1.0.0 (2026-10-19)
 
 
