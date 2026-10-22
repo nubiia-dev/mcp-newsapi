@@ -3,7 +3,7 @@
   "manifest_version": "0.3",
   "name": "mcp-newsapi",
   "display_name": "NewsAPI.ai MCP Server",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "MCP Server for the NewsAPI.ai (Event Registry) API - search news articles and events, resolve entities, and see what is trending",
   "long_description": "A Model Context Protocol (MCP) server that gives AI assistants like Claude access to the NewsAPI.ai (Event Registry) news intelligence API. Search articles and events (clusters of articles about the same happening) by keyword, entity, category, source, location, language and date; resolve names to entity URIs with free autosuggest tools; see what is trending; and check the account's remaining token budget.\n\n**Features:**\n- Article and event search with token-frugal defaults (10 results, 300-character bodies, last 31 days)\n- Free autosuggest for concepts, categories, sources and locations\n- Trending concepts across news, social, press releases and blogs\n- Token usage tool and per-tool cost documented in each tool description\n- Read-only: nothing is written to NewsAPI.ai or to disk\n\n**Requires a NewsAPI.ai account and API key.** The API is token-metered; a free plan with a limited budget is available.",
 
