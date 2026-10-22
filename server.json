@@ -2,7 +2,7 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
   "name": "io.github.nubiia-dev/mcp-newsapi",
   "description": "NewsAPI.ai (Event Registry): 10 read-only MCP tools for news articles, events, autosuggest, trends",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "homepage": "https://github.com/nubiia-dev/mcp-newsapi",
   "license": "MIT",
   "author": {
@@ -17,7 +17,7 @@
     {
       "registryType": "npm",
       "identifier": "@nubiia/mcp-newsapi",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "runtimeHint": "npx",
       "transport": {
         "type": "stdio"

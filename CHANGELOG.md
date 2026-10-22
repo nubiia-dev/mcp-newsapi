@@ -1,3 +1,10 @@
+## [1.0.2](https://github.com/nubiia-dev/mcp-newsapi/compare/v1.0.1...v1.0.2) (2026-10-22)
+
+
+### Bug Fixes
+
+* unref the rate limiter cleanup timer so the process exits on stdin close ([2ac2992](https://github.com/nubiia-dev/mcp-newsapi/commit/2ac299237ec73ebd83ea4e62106d6bf52db0d146))
+
 ## [1.0.1](https://github.com/nubiia-dev/mcp-newsapi/compare/v1.0.0...v1.0.1) (2026-10-19)
 
 
